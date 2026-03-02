@@ -1,31 +1,31 @@
 # Holo Search SDK
 
-一个用于Hologres数据检索操作的 Python SDK，支持向量检索和全文检索功能。
+A Python SDK for Hologres data retrieval operations, supporting vector search and full-text indexing.
 
-## ✨ 特性
+## ✨ Attributes
 
-- **🔍 向量检索**: 基于语义相似性的检索功能
-- **📝 全文检索**: 传统的基于关键词的检索
-- **💾 CRUD 操作**: 完整的数据增删改查功能（upsert, update, delete, truncate, overwrite）
-- **🛡️ 类型安全**: 使用类型提示和数据验证
-- **🧩 模块化设计**: 清晰的分层架构，便于扩展和维护
+- **🔍 Vector search**: Retrieval feature based on semantic similarity
+- **📝 Full-text index**: Traditional keyword-based retrieval
+- **💾 CRUD operations**: Full create, read, update, delete capabilities (upsert, update, delete, truncate, overwrite)
+- **🛡️ Type safety**: Uses type hints and Data Validation
+- **🧩 Modular design**: Clear layered architecture for easy extension and maintenance
 
-## 📦 安装
+## 📦 Install
 
-### 从 PyPI 安装
+### Install from PyPI
 
 ```bash
 pip install holo-search-sdk
 ```
 
-## 🚀 快速开始
+## 🚀 Get started
 
-### 基本使用
+### Basic usage
 
 ```python
 import holo_search_sdk as holo
 
-# 连接到数据库
+# Connect to database
 client = holo.connect(
     host="your-host",
     port=80,
@@ -35,13 +35,18 @@ client = holo.connect(
     schema="public"
 )
 
-# 建立连接
+# Establish connection
 client.connect()
 
-# 打开表
+# Open table
+columns = {
+    "id": ("INTEGER", "PRIMARY KEY"),
+    "content": "TEXT",
+    "vector": "FLOAT4[]"
+}
 table = client.open_table("table_name")
 
-# 插入数据
+# Insert data
 data = [
     [1, "Hello world", [0.1, 0.2, 0.3]],
     [2, "Python SDK", [0.4, 0.5, 0.6]],
@@ -49,7 +54,7 @@ data = [
 ]
 table.insert_multi(data, ["id", "content", "vector"])
 
-# 设置向量索引
+# Set vector index
 table.set_vector_index(
     column="vector",
     distance_method="Cosine",
@@ -58,18 +63,18 @@ table.set_vector_index(
     ef_construction=400
 )
 
-# 向量检索
+# Vector search
 query_vector = [0.1, 0.2, 0.3]
-# 限制结果数量
+# Limit results
 results = table.search_vector(query_vector, "vector").limit(10).fetchall()
-# 设置最小距离
+# Set minimum distance
 results = table.search_vector(query_vector, "vector").min_distance(0.5).fetchall()
 
-# 关闭连接
+# Close connection
 client.disconnect()
 ```
 
-### 使用上下文管理器
+### Use context manager
 
 ```python
 import holo_search_sdk as holo
@@ -83,25 +88,25 @@ with holo.connect(
 ) as client:
     client.connect()
     
-    # 执行数据库操作
+# Execute database operations
     table = client.open_table("table_name")
     results = table.search_vector([0.1, 0.2, 0.3], "vector_column").fetchall()
     
-    # 连接会自动关闭
+# Connection will close automatically
 ```
 
-## 📚 详细文档
+## 📚 Detailed document
 
-### 核心概念
+### Core concepts
 
-#### 1. 客户端 (Client)
+#### 1. Client
 
-客户端是与数据库交互的主要接口：
+The client is the primary API for interacting with the database:
 
 ```python
 from holo_search_sdk import connect
 
-# 创建客户端
+# Create client
 client = connect(
     host="localhost",
     port=80,
@@ -110,85 +115,85 @@ client = connect(
     access_key_secret="your_secret"
 )
 
-# 建立连接
+# Establish connection
 client.connect()
 
-# 执行 SQL
+# Execute SQL
 result = client.execute("SELECT COUNT(*) FROM users", fetch_result=True)
 
-# 表操作
+# Table operations
 table = client.open_table("table_name")
 ```
 
-#### 2. 表操作 (Table Operations)
+#### 2. Table Operations
 
-表是数据存储和搜索的基本单位：
+Table is the basic unit of data storage and search:
 
 ```python
-# 打开现有表
+# Open existing table
 table = client.open_table("table_name")
 
-# 检查表是否存在
+# Check if table exists
 exists = client.check_table_exist("table_name")
 
-# 删除表
+# Delete
 client.drop_table("table_name")
 ```
 
-#### 3. 数据插入
+#### 3. Data insert
 
-支持单条和批量数据插入：
+Supports single and batch data inserts:
 
 ```python
-# 插入单条记录
+# Insert single record
 table.insert_one(
-    [1, "标题", "内容", [0.1, 0.2, 0.3]],
+[1, "title", "Content", [0.1, 0.2, 0.3]],
     ["id", "title", "content", "vector"]
 )
 
-# 批量插入
+# Bulk insert
 data = [
-    [1, "文档1", "内容1", [0.1, 0.2, 0.3]],
-    [2, "文档2", "内容2", [0.4, 0.5, 0.6]],
-    [3, "文档3", "内容3", [0.7, 0.8, 0.9]]
+[1, "document1", "Content1", [0.1, 0.2, 0.3]],
+[2, "document2", "Content2", [0.4, 0.5, 0.6]],
+[3, "document3", "Content3", [0.7, 0.8, 0.9]]
 ]
 table.insert_multi(data, ["id", "title", "content", "vector"])
 ```
 
-#### 4. CRUD 操作
+#### 4. CRUD operations
 
-支持完整的数据增删改查操作：
+Supports full create, read, update, and delete operations:
 
 ```python
-# Upsert（插入或更新）
-# 单条 upsert
+# Upsert (insert or update)
+# Single upsert
 table.upsert_one(
     index_column="id",
-    values=[1, "更新的内容", [0.1, 0.2, 0.3]],
+    values=[1, "updated content", [0.1, 0.2, 0.3]],
     column_names=["id", "content", "vector"],
-    update=True  # 冲突时执行更新
+    update=True  # Perform update on conflict
 )
 
-# 批量 upsert
+# Batch upsert
 table.upsert_multi(
     index_column="id",
     values=[
-        [1, "内容1", [0.1, 0.2, 0.3]],
-        [2, "内容2", [0.4, 0.5, 0.6]]
+        [1, "content1", [0.1, 0.2, 0.3]],
+        [2, "content2", [0.4, 0.5, 0.6]]
     ],
     column_names=["id", "content", "vector"],
     update=True,
-    update_columns=["content", "vector"]  # 指定更新的列
+    update_columns=["content", "vector"]  # Columns to update on conflict
 )
 
-# Update（更新）
+# Update
 table.update(
     columns=["content", "updated_at"],
-    values=["新内容", "2026-01-22"],
+    values=["new content", "2026-01-22"],
     condition="id = 1"
 )
 
-# 带表别名和 FROM 子句的更新
+# Update with table alias and FROM clause
 table.update(
     columns=["status"],
     values=["active"],
@@ -198,50 +203,49 @@ table.update(
     condition="t1.id = t2.ref_id AND t2.flag = true"
 )
 
-# Delete（删除）
-table.delete("id > 100")  # 删除满足条件的记录
+# Delete
+table.delete("id > 100")  # Delete records matching the condition
 
-# Truncate（清空）
-table.truncate()  # 清空表中所有数据，保留表结构
+# Truncate
+table.truncate()  # Remove all data from the table while keeping the schema
 
-# Overwrite（覆盖）
-# 方式1：使用值覆盖
+# Overwrite - using values
 table.overwrite(
     values=[
-        [1, "新数据1", [0.1, 0.2, 0.3]],
-        [2, "新数据2", [0.4, 0.5, 0.6]]
+        [1, "new data1", [0.1, 0.2, 0.3]],
+        [2, "new data2", [0.4, 0.5, 0.6]]
     ]
 )
 
-# 方式2：使用查询结果覆盖
+# Overwrite - using query results
 source_table = client.open_table("source_table")
 table.overwrite(
     values_expression=source_table.select("*").where("active = true")
 )
 
-# Drop（删除表）
-table.drop()  # 删除整个表
+# Drop table
+table.drop()
 ```
 
-#### 5. 向量索引
+#### 5. Vector index
 
-为向量列创建高效的检索索引：
+Create efficient retrieval indexes for vector columns:
 
 ```python
-# 设置单个向量索引
+# Set single vector index
 table.set_vector_index(
     column="vector",
-    distance_method="Cosine",  # 可选: "Euclidean", "InnerProduct", "Cosine"
-    base_quantization_type="rabitq",  # 可选: "sq8", "sq8_uniform", "fp16", "fp32", "rabitq"
+distance_method="Cosine",  # Optional: "Euclidean", "InnerProduct", "Cosine"
+base_quantization_type="rabitq",  # Optional: "sq8", "sq8_uniform", "fp16", "fp32", "rabitq"
     max_degree=64,
     ef_construction=400,
     use_reorder=True,
     precise_quantization_type="fp32",
-    max_total_size_to_merge_mb=4096,  # 磁盘合并时数据的最大文件大小，单位MB
-    build_thread_count=16  # 索引构建过程中使用的线程数
+max_total_size_to_merge_mb=4096,  # Maximum File Size of Data when merging on disk, in MB
+build_thread_count=16  # Number of threads used during index Build procedure
 )
 
-# 设置多个向量索引
+# Set multiple vector indexes
 table.set_vector_indexes({
     "content_vector": {
         "distance_method": "Cosine",
@@ -265,16 +269,16 @@ table.set_vector_indexes({
     }
 })
 
-# 删除所有向量索引
+# Delete all vector indexes
 table.delete_vector_indexes()
 ```
 
-#### 6. 向量检索
+#### 6. Vector search
 
-执行语义相似性检索：
+Execute semantic similarity retrieval:
 
 ```python
-# 基本向量检索
+# Basic vector search
 query_vector = [0.1, 0.2, 0.3]
 results = table.search_vector(
     vector=query_vector,
@@ -282,7 +286,7 @@ results = table.search_vector(
     distance_method="Cosine"
 ).fetchall()
 
-# 带输出别名的检索
+# Retrieval with outputs alias
 results = table.search_vector(
     vector=query_vector,
     column="vector",
@@ -291,39 +295,39 @@ results = table.search_vector(
 ).fetchall()
 ```
 
-#### 7. 数据查询
+#### 7. Data query
 
-支持基于主键的精确查询：
+Supports primary key-based term query:
 
 ```python
-# 根据主键查询单条记录
+# Query single record by primary key
 result = table.get_by_key(
     key_column="id",
     key_value=1,
-    return_columns=["id", "content", "vector"]  # 可选，不指定则返回所有列
+return_columns=["id", "content", "vector"]  # Optional. If not specified, returns all columns
 ).fetchone()
 
-# 根据主键列表批量查询
+# Batch query by primary key list
 results = table.get_multi_by_keys(
     key_column="id", 
     key_values=[1, 2, 3],
-    return_columns=["id", "content"]  # 可选，不指定则返回所有列
+return_columns=["id", "content"]  # Optional. If not specified, returns all columns
 ).fetchall()
 ```
 
-#### 8. 向量索引管理
+#### 8. Vector index management
 
-查询和管理向量索引信息：
+Query and manage vector index information:
 
 ```python
-# 获取向量索引信息
+# Retrieve vector index information
 index_info = table.get_vector_index_info()
 if index_info:
-    print("当前向量索引配置:", index_info)
+print("Current vector index configuration:", index_info)
 else:
-    print("未找到向量索引配置")
+print("Vector index configuration not found")
 
-# 索引信息示例返回格式
+# Index information sample return format
 # {
 #     "vector_column": {
 #         "algorithm": "HGraph",
@@ -342,89 +346,89 @@ else:
 # }
 ```
 
-#### 9. 全文检索索引
+#### 9. Full-text index
 
-为文本列创建全文检索索引：
+Create a full-text index for text columns:
 
 ```python
-# 创建全文索引
+# Create a full-text index
 table.create_text_index(
     index_name="ft_idx_content",
     column="content",
-    tokenizer="jieba"  # 可选: "jieba", "ik", "icu", "whitespace", "standard", "simple", "keyword", "ngram", "pinyin"
+tokenizer="jieba"  # Optional: "jieba", "ik", "icu", "whitespace", "standard", "simple", "keyword", "ngram", "pinyin"
 )
 
-# 设置全文索引（修改现有索引的分词器）
+# Set full-text index (modify the tokenizer of an existing index)
 table.set_text_index(
     index_name="ft_idx_content",
     tokenizer="ik"
 )
 
-# 删除全文索引
+# Delete a full-text index
 table.drop_text_index(index_name="ft_idx_content")
 ```
 
-#### 10. 全文检索
+#### 10. Full-text retrieval
 
-执行全文检索查询：
+Execute a full-text retrieval query:
 
 ```python
-# 基本全文检索
+# Basic full-text retrieval
 results = table.search_text(
     column="content",
-    expression="机器学习",
+    expression="machine learning",
     return_all_columns=True
 ).fetchall()
 
-# 带分数返回的全文检索
+# Full-text retrieval with scores returned
 results = table.search_text(
     column="content",
-    expression="深度学习",
+    expression="deep learning",
     return_score=True,
     return_score_name="relevance_score"
 ).select(["id", "title", "content"]).fetchall()
 
-# 使用不同的检索模式
-# 关键词模式（默认）
+# Use different retrieval patterns
+# Keyword pattern (default)
 results = table.search_text(
     column="content",
     expression="python programming",
     mode="match",
-    operator="AND"  # 要求同时包含所有关键词
+operator="AND"  # Require containing all keywords
 ).fetchall()
 
-# 短语模式
+# Phrase pattern
 results = table.search_text(
     column="content",
     expression="machine learning",
-    mode="phrase"  # 精确短语匹配
+mode="phrase"  # Exact phrase match
 ).fetchall()
 
-# 自然语言模式
+# Natural language pattern
 results = table.search_text(
     column="content",
-    expression="+python -java",  # 必须包含python，不能包含java
+expression="+python -java",  # Must contain python, cannot contain java
     mode="natural_language"
 ).fetchall()
 
-# 术语检索
+# Term retrieval
 results = table.search_text(
     column="content",
     expression="python",
-    mode="term" # 对expression不做分词或其他处理，直接去索引中精确匹配
+mode="term" # Do not perform tokenization or other processing on the expression. Directly perform an exact match in the index
 ).fetchall()
 ```
 
-#### 11. 高级查询构建
+#### 11. Advanced query build
 
-使用查询构建器进行复杂查询：
+Use the query builder to perform complex queries:
 
 ```python
-# 组合全文检索和过滤条件
+# Combine full-text search and filter conditions
 results = (
     table.search_text(
         column="content",
-        expression="人工智能",
+        expression="artificial intelligence",
         return_score=True,
         return_score_name="score"
     )
@@ -434,7 +438,7 @@ results = (
     .fetchall()
 )
 
-# 使用过滤器表达式
+# Use filter expressions
 from holo_search_sdk import Filter, AndFilter, OrFilter, NotFilter
 
 results = (
@@ -449,7 +453,7 @@ results = (
     .fetchall()
 )
 
-# 使用或过滤器表达式
+# Use OR filter expressions
 results = (
     table.select(["id", "title", "content"])
     .where(
@@ -459,7 +463,7 @@ results = (
     .fetchall()
 )
 
-# 使用分词功能
+# Use the tokenization feature
 results = (
     table.select(["id", "content"])
     .select_tokenize(
@@ -472,12 +476,12 @@ results = (
 )
 ```
 
-#### 12. 表连接查询
+#### 12. Table join query
 
-支持多表连接查询：
+Support multi-table join queries:
 
 ```python
-# 内连接
+# Inner join
 table1 = client.open_table("articles", table_alias="a")
 table2 = client.open_table("authors", table_alias="b")
 
@@ -488,7 +492,7 @@ results = (
     .fetchall()
 )
 
-# 左连接
+# Left join
 results = (
     table1.select(["a.id", "a.title", "b.name"])
     .left_join(table2, "a.author_id = b.id")
@@ -496,9 +500,9 @@ results = (
 )
 ```
 
-### 配置选项
+### Configuration options
 
-#### 连接配置
+#### Connection configuration
 
 ```python
 from holo_search_sdk.types import ConnectionConfig
@@ -509,125 +513,125 @@ config = ConnectionConfig(
     database="production_db",
     access_key_id="user...",
     access_key_secret="secret...",
-    schema="analytics"  # 默认为 "public"
+schema="analytics"  # The default is "public"
 )
 ```
 
-#### 向量索引配置
+#### Vector index configuration
 
-- **distance_method**: 距离计算方法
-  - `"Euclidean"`: 欧几里得距离
-  - `"InnerProduct"`: 内积距离
-  - `"Cosine"`: 余弦距离
+- **distance_method**: Distance computation method
+- `"Euclidean"`: Euclidean distance
+- `"InnerProduct"`: Inner product distance
+- `"Cosine"`: Cosine distance
 
-- **base_quantization_type**: 基础量化类型
+- **base_quantization_type**: Base quantization type
   - `"sq8"`, `"sq8_uniform"`, `"fp16"`, `"fp32"`, `"rabitq"`
-- **max_degree**: 图构建过程中每个顶点尝试连接的最近邻数量 (默认: 64)
-- **ef_construction**: 图构建过程中的检索深度控制 (默认: 400)
-- **use_reorder**: 是否使用 HGraph 高精度索引 (默认: False)
-- **precise_quantization_type**: 精确量化类型 (默认: "fp32")
-- **precise_io_type**: 精确 IO 类型 (默认: "block_memory_io")
-- **max_total_size_to_merge_mb**: 磁盘合并时数据的最大文件大小，单位MB (默认: 4096)
-- **build_thread_count**: 索引构建过程中使用的线程数 (默认: 16)
+- **max_degree**: The quantity of nearest neighbors that each vertex attempts to connect to during the graph build procedure (default: 64)
+- **ef_construction**: Retrieval depth control during the graph build procedure (default: 400)
+- **use_reorder**: Specifies whether to use the HGraph high-precision index (default: False)
+- **precise_quantization_type**: Precise quantization type (default: "fp32")
+- **precise_io_type**: Precise IO type (default: "block_memory_io")
+- **max_total_size_to_merge_mb**: The maximum file size of data during disk merge, in MB (default: 4096)
+- **build_thread_count**: The number of threads used during the index build procedure (default: 16)
 
-#### 全文检索配置
+#### Full-text search configuration
 
-- **tokenizer**: 分词器类型
-- **mode**: 全文检索模式
-  - `match`:关键词匹配，默认
-  - `phrase`:短语检索
-  - `natural_language`:自然语言检索
-  - `term`:术语检索
-- **operator**: 关键词检索操作符 (仅适用于match模式, 默认: "OR")
-- *分词过滤器**:
-  - `lowercase`: 将token中的大写字母转为小写
-  - `stop`: 移除停用词token
-  - `stemmer`: 根据对应语言的语法规则将token转化为其对应的词干
-  - `length`: 移除超过指定长度的token
-  - `removepunct`: 移除只包含标点符号字符的token。
-  - `pinyin`: 拼音Token Filter
+- **tokenizer**: Tokenizer type
+- **mode**: Full-text search mode
+- `match`: Keyword match. Default.
+- `phrase`: Phrase search
+- `natural_language`: Natural language search
+- `term`: Term search
+- **operator**: Keyword search operator (Applicable only to match mode. Default: "OR")
+- **Token filter**:
+- `lowercase`: Converts uppercase letters in tokens to lowercase.
+- `stop`: Removes stop word tokens.
+- `stemmer`: Converts tokens to their corresponding stems based on the syntax rules of the corresponding language.
+- `length`: Removes tokens that exceed the specified length.
+- `removepunct`: Removes tokens that contain only punctuation characters.
+- `pinyin`: Pinyin token filter
 
-## 🔧 API 参考
+## 🔧 API Reference
 
-### 主要类
+### Main classes
 
-- **`Client`**: 数据库客户端，管理连接和表操作
-- **`HoloTable`**: 表操作接口，支持数据插入、向量检索和全文检索
-- **`QueryBuilder`**: 查询构建器，支持链式调用构建复杂查询
-- **`ConnectionConfig`**: 连接配置数据类
+- **`Client`**: Database client. It manages connections and table operations.
+- **`HoloTable`**: Table operation API. It supports data insertion, vector search, and full-text search.
+- **`QueryBuilder`**: Query builder. It supports chain invocation to build complex queries.
+- **`ConnectionConfig`**: Connection configuration data class.
 
-### 过滤器类
+### Filter classes
 
-- **`Filter`**: 基础过滤器表达式
-- **`AndFilter`**: AND 逻辑过滤器
-- **`OrFilter`**: OR 逻辑过滤器
-- **`NotFilter`**: NOT 逻辑过滤器
-- **`TextSearchFilter`**: 全文检索过滤器
+- **`Filter`**: Basic filter expression.
+- **`AndFilter`**: AND logic filter.
+- **`OrFilter`**: OR logic filter.
+- **`NotFilter`**: NOT logic filter.
+- **`TextSearchFilter`**: Full-text search filter.
 
-### 主要函数
+### Main functions
 
-**连接和表管理：**
-- **`connect()`**: 创建数据库客户端连接
-- **`open_table()`**: 打开现有表
-- **`check_table_exist()`**: 检查表是否存在
-- **`drop_table()`**: 删除表
+**Connection and Table Management:**
+- **`connect()`**: Creates a database client connection.
+- **`open_table()`**: Opens an existing table.
+- **`check_table_exist()`**: Checks whether a table exists.
+- **`drop_table()`**: Deletes a table.
 
-**数据操作：**
-- **`insert_one()`**: 插入单条记录
-- **`insert_multi()`**: 批量插入记录
-- **`upsert_one()`**: 插入或更新单条记录（ON CONFLICT）
-- **`upsert_multi()`**: 批量插入或更新记录
-- **`update()`**: 更新指定条件的记录
-- **`delete()`**: 删除满足条件的记录
-- **`truncate()`**: 清空表中所有数据
-- **`overwrite()`**: 覆盖表中所有数据
-- **`drop()`**: 删除表
-- **`get_by_key()`**: 根据主键查询单条记录
-- **`get_multi_by_keys()`**: 根据主键列表批量查询
+**Data operation:**
+- **`insert_one()`**: Inserts a single record.
+- **`insert_multi()`**: Bulk inserts records.
+- **`upsert_one()`**: Inserts or updates a single record (ON CONFLICT).
+- **`upsert_multi()`**: Bulk inserts or updates records.
+- **`update()`**: Updates records that match the given condition.
+- **`delete()`**: Deletes records that match the given condition.
+- **`truncate()`**: Removes all data from the table.
+- **`overwrite()`**: Overwrites all data in the table.
+- **`drop()`**: Drops the table.
+- **`get_by_key()`**: Queries a single record based on the primary key.
+- **`get_multi_by_keys()`**: Batch queries based on a primary key list.
 
-**向量检索：**
-- **`set_vector_index()`**: 设置单个向量索引
-- **`set_vector_indexes()`**: 设置多个向量索引
-- **`delete_vector_indexes()`**: 删除所有向量索引
-- **`get_vector_index_info()`**: 获取向量索引信息
-- **`search_vector()`**: 执行向量检索
+**Vector search:**
+- **`set_vector_index()`**: Sets a single vector index.
+- **`set_vector_indexes()`**: Sets multiple vector indexes.
+- **`delete_vector_indexes()`**: Deletes all vector indexes.
+- **`get_vector_index_info()`**: Retrieves vector index information.
+- **`search_vector()`**: Executes vector search.
 
-**全文检索：**
-- **`create_text_index()`**: 创建全文索引
-- **`set_text_index()`**: 修改全文索引
-- **`drop_text_index()`**: 删除全文索引
-- **`get_index_properties()`**: 获取索引属性
-- **`search_text()`**: 执行全文检索
+**Full-text search:**
+- **`create_text_index()`**: Creates a full-text index.
+- **`set_text_index()`**: Modifies a full-text index.
+- **`drop_text_index()`**: Deletes a full-text index.
+- **`get_index_properties()`**: Retrieves index properties.
+- **`search_text()`**: Executes full-text search.
 
-**查询构建：**
-- **`select()`**: 选择返回的列
-- **`where()`**: 添加过滤条件
-- **`and_where()`**: 添加 AND 过滤条件
-- **`or_where()`**: 添加 OR 过滤条件
-- **`order_by()`**: 排序
-- **`group_by()`**: 分组
-- **`limit()`**: 限制结果数量
-- **`offset()`**: 跳过指定数量的结果
-- **`join()`**: 表连接
-- **`inner_join()`**: 内连接
-- **`left_join()`**: 左连接
-- **`right_join()`**: 右连接
-- **`select_tokenize()`**: 显示分词效果
-- **`select_text_search()`**: 在 SELECT 中进行全文检索
-- **`where_text_search()`**: 在 WHERE 中进行全文检索过滤
+**Query building:**
+- **`select()`**: Selects the columns to return
+- **`where()`**: Adds filter conditions
+- **`and_where()`**: Adds AND filter conditions
+- **`or_where()`**: Adds OR filter conditions
+- **`order_by()`**: Sorts the results
+- **`group_by()`**: Groups the results
+- **`limit()`**: Limits the quantity of results
+- **`offset()`**: Skips the specified quantity of results
+- **`join()`**: Table join
+- **`inner_join()`**: Inner join
+- **`left_join()`**: Left join
+- **`right_join()`**: Right join
+- **`select_tokenize()`**: Displays tokenization effects
+- **`select_text_search()`**: Performs full-text search in SELECT
+- **`where_text_search()`**: Performs full-text search filtering in WHERE
 
-### 异常类
+### Exception classes
 
-- **`HoloSearchError`**: 基础异常类
-- **`ConnectionError`**: 连接相关错误
-- **`QueryError`**: 查询执行错误
-- **`SqlError`**: SQL 生成错误
-- **`TableError`**: 表操作错误
+- **`HoloSearchError`**: Base exception class
+- **`ConnectionError`**: Connection-related errors
+- **`QueryError`**: Query execution errors
+- **`SqlError`**: SQL generation errors
+- **`TableError`**: Table operation errors
 
-## 📄 许可证
+## 📄 License
 
-本项目采用 MIT 许可证 - 查看 [LICENSE.txt](LICENSE.txt) 文件了解详情。
+This project uses the MIT License - View the [LICENSE](LICENSE) file for details.
 
 ---
 
-**Holo Search SDK** - 让Hologres向量和全文检索变得简单高效 🚀
+**Holo Search SDK** - Makes Hologres vector and full-text retrieval simple and efficient 🚀
