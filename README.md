@@ -1,5 +1,7 @@
 # Holo Search SDK
 
+**[中文文档](README_CN.md)**
+
 A Python SDK for Hologres data retrieval operations, supporting vector search and full-text indexing.
 
 ## ✨ Attributes
@@ -344,6 +346,16 @@ print("Vector index configuration not found")
 #         }
 #     }
 # }
+
+# Get all vector column dimensions
+all_dims = table.get_all_vector_column_dimensions()
+print("All vector column dimensions:", all_dims)
+# Sample output: {"feature1": [128], "feature2": [256]}
+
+# Get specific vector column dimension
+feature_dim = table.get_vector_column_dimension("feature1")
+print("feature1 dimension:", feature_dim)
+# Sample output: [128]
 ```
 
 #### 9. Full-text index
@@ -594,6 +606,8 @@ schema="analytics"  # The default is "public"
 - **`set_vector_indexes()`**: Sets multiple vector indexes.
 - **`delete_vector_indexes()`**: Deletes all vector indexes.
 - **`get_vector_index_info()`**: Retrieves vector index information.
+- **`get_all_vector_column_dimensions()`**: Retrieves all vector columns and their dimensions.
+- **`get_vector_column_dimension()`**: Retrieves the dimension of a specific vector column.
 - **`search_vector()`**: Executes vector search.
 
 **Full-text search:**

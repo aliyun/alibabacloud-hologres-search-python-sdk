@@ -1453,3 +1453,167 @@ class TestHoloTable:
         sql_str = call_args[0].as_string()
         assert 'ON CONFLICT ("id")' in sql_str
         assert "DO NOTHING" in sql_str
+
+    def test_get_table_properties_all(self):
+        """Test _get_table_properties without filter."""
+        mock_connection = Mock(spec=HoloConnect)
+        mock_config = Mock()
+        mock_config.schema = "public"
+        mock_connection.get_config.return_value = mock_config
+        mock_connection.fetchall.return_value = [
+            ("column_array_info", '{"2": [128]}'),
+            ("vectors", '{"feature": {"distance_method": "Cosine"}}'),
+        ]
+
+        table = HoloTable(mock_connection, "test_table")
+        result = table._get_table_properties()
+
+        assert len(result) == 2
+        assert "column_array_info" in result
+        assert "vectors" in result
+        mock_connection.fetchall.assert_called_once()
+
+    def test_get_table_properties_with_filter(self):
+        """Test _get_table_properties with specific property keys filter."""
+        mock_connection = Mock(spec=HoloConnect)
+        mock_config = Mock()
+        mock_config.schema = "public"
+        mock_connection.get_config.return_value = mock_config
+        mock_connection.fetchall.return_value = [
+            ("column_array_info", '{"2": [128]}'),
+        ]
+
+        table = HoloTable(mock_connection, "test_table")
+        result = table._get_table_properties(["column_array_info"])
+
+        assert len(result) == 1
+        assert "column_array_info" in result
+        mock_connection.fetchall.assert_called_once()
+
+    def test_get_column_id_name_mapping(self):
+        """Test _get_column_id_name_mapping method."""
+        mock_connection = Mock(spec=HoloConnect)
+        mock_config = Mock()
+        mock_config.schema = "public"
+        mock_connection.get_config.return_value = mock_config
+        mock_connection.fetchall.return_value = [
+            (1, "id"),
+            (2, "feature1"),
+            (3, "feature2"),
+        ]
+
+        table = HoloTable(mock_connection, "test_table")
+        result = table._get_column_id_name_mapping()
+
+        assert result == {"1": "id", "2": "feature1", "3": "feature2"}
+        mock_connection.fetchall.assert_called_once()
+
+    def test_get_all_vector_column_dimensions(self):
+        """Test get_all_vector_column_dimensions method."""
+        mock_connection = Mock(spec=HoloConnect)
+        mock_config = Mock()
+        mock_config.schema = "public"
+        mock_connection.get_config.return_value = mock_config
+
+        # Mock _get_table_properties
+        mock_connection.fetchall.side_effect = [
+            # First call: _get_table_properties
+            [("column_array_info", '{"2": [128], "3": [256]}')],
+            # Second call: _get_column_id_name_mapping
+            [(1, "id"), (2, "feature1"), (3, "feature2")],
+        ]
+
+        table = HoloTable(mock_connection, "test_table")
+        result = table.get_all_vector_column_dimensions()
+
+        assert result == {"feature1": [128], "feature2": [256]}
+        assert mock_connection.fetchall.call_count == 2
+
+    def test_get_all_vector_column_dimensions_no_data(self):
+        """Test get_all_vector_column_dimensions with no column_array_info."""
+        from holo_search_sdk.exceptions import QueryError
+
+        mock_connection = Mock(spec=HoloConnect)
+        mock_config = Mock()
+        mock_config.schema = "public"
+        mock_connection.get_config.return_value = mock_config
+        mock_connection.fetchall.return_value = []
+
+        table = HoloTable(mock_connection, "test_table")
+
+        with pytest.raises(QueryError, match="Failed to get column array info"):
+            table.get_all_vector_column_dimensions()
+
+    def test_get_all_vector_column_dimensions_invalid_json(self):
+        """Test get_all_vector_column_dimensions with invalid JSON."""
+        from holo_search_sdk.exceptions import QueryError
+
+        mock_connection = Mock(spec=HoloConnect)
+        mock_config = Mock()
+        mock_config.schema = "public"
+        mock_connection.get_config.return_value = mock_config
+        mock_connection.fetchall.return_value = [
+            ("column_array_info", "invalid json"),
+        ]
+
+        table = HoloTable(mock_connection, "test_table")
+
+        with pytest.raises(QueryError, match="Failed to parse column array info"):
+            table.get_all_vector_column_dimensions()
+
+    def test_get_all_vector_column_dimensions_column_not_found(self):
+        """Test get_all_vector_column_dimensions when column ID not found."""
+        from holo_search_sdk.exceptions import QueryError
+
+        mock_connection = Mock(spec=HoloConnect)
+        mock_config = Mock()
+        mock_config.schema = "public"
+        mock_connection.get_config.return_value = mock_config
+        mock_connection.fetchall.side_effect = [
+            # First call: _get_table_properties - column_id 99 doesn't exist in mapping
+            [("column_array_info", '{"99": [128]}')],
+            # Second call: _get_column_id_name_mapping - no column 99
+            [(1, "id"), (2, "feature1")],
+        ]
+
+        table = HoloTable(mock_connection, "test_table")
+
+        with pytest.raises(QueryError, match="Column ID 99 not found"):
+            table.get_all_vector_column_dimensions()
+
+    def test_get_vector_column_dimension(self):
+        """Test get_vector_column_dimension method."""
+        mock_connection = Mock(spec=HoloConnect)
+        mock_config = Mock()
+        mock_config.schema = "public"
+        mock_connection.get_config.return_value = mock_config
+        mock_connection.fetchall.side_effect = [
+            [("column_array_info", '{"2": [128], "3": [256]}')],
+            [(1, "id"), (2, "feature1"), (3, "feature2")],
+        ]
+
+        table = HoloTable(mock_connection, "test_table")
+        result = table.get_vector_column_dimension("feature1")
+
+        assert result == [128]
+
+    def test_get_vector_column_dimension_not_found(self):
+        """Test get_vector_column_dimension when column is not a vector column."""
+        from holo_search_sdk.exceptions import QueryError
+
+        mock_connection = Mock(spec=HoloConnect)
+        mock_config = Mock()
+        mock_config.schema = "public"
+        mock_connection.get_config.return_value = mock_config
+        mock_connection.fetchall.side_effect = [
+            [("column_array_info", '{"2": [128]}')],
+            [(1, "id"), (2, "feature1")],
+        ]
+
+        table = HoloTable(mock_connection, "test_table")
+
+        with pytest.raises(
+            QueryError,
+            match="Column non_vector_col is not a vector column or its dimension is not set",
+        ):
+            table.get_vector_column_dimension("non_vector_col")

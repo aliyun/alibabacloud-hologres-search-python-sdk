@@ -107,16 +107,14 @@ class HoloDB:
         if not self._connected or not self._connection:
             raise ConnectionError("Database not connected. Call connect() first.")
 
-        sql = psql.SQL(
-            """
+        sql = psql.SQL("""
         SELECT EXISTS(
             SELECT 1
             FROM pg_tables
             WHERE schemaname = {}
             AND tablename = {}
         );
-        """
-        ).format(psql.Literal(self._config.schema), psql.Literal(table_name))
+        """).format(psql.Literal(self._config.schema), psql.Literal(table_name))
         res = self._connection.fetchone(sql)
         if not res:
             raise QueryError("Error executing SQL query")

@@ -140,6 +140,8 @@ table.set_vector_index(column, distance_method, ...)
 table.set_vector_indexes(column_configs)
 table.delete_vector_indexes()
 table.get_vector_index_info()  # 获取当前向量索引配置信息
+table.get_all_vector_column_dimensions()  # 获取所有向量列及其维度
+table.get_vector_column_dimension(column_name)  # 获取特定向量列的维度
 
 # 向量检索
 table.search_vector(vector, column, output_name, distance_method)

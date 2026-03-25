@@ -48,6 +48,19 @@ def main():
     # Get vector index info
     print(f"Vector index info: {holo_table.get_vector_index_info()}")
 
+    # Get all vector column dimensions
+    all_dims = holo_table.get_all_vector_column_dimensions()
+    print(f"All vector column dimensions: {all_dims}")
+
+    # Get specific vector column dimension
+    feature1_dim = holo_table.get_vector_column_dimension("feature1")
+    print(f"feature1 dimension: {feature1_dim}")
+    try:
+        feature2_dim = holo_table.get_vector_column_dimension("feature2")
+        print(f"feature2 dimension: {feature2_dim}")
+    except Exception as e:
+        print(f"Error: {e}")
+
     # Search vector
     query_result1 = (
         holo_table.search_vector(

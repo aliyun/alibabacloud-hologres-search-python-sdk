@@ -1,5 +1,7 @@
 # Holo Search SDK
 
+**[English Version](README.md)**
+
 一个用于Hologres数据检索操作的 Python SDK，支持向量检索和全文检索功能。
 
 ## ✨ 特性
@@ -340,6 +342,16 @@ else:
 #         }
 #     }
 # }
+
+# 获取所有向量列的维度
+all_dims = table.get_all_vector_column_dimensions()
+print("所有向量列维度:", all_dims)
+# 示例输出: {"feature1": [128], "feature2": [256]}
+
+# 获取特定向量列的维度
+feature_dim = table.get_vector_column_dimension("feature1")
+print("feature1 维度:", feature_dim)
+# 示例输出: [128]
 ```
 
 #### 9. 全文检索索引
@@ -590,6 +602,8 @@ config = ConnectionConfig(
 - **`set_vector_indexes()`**: 设置多个向量索引
 - **`delete_vector_indexes()`**: 删除所有向量索引
 - **`get_vector_index_info()`**: 获取向量索引信息
+- **`get_all_vector_column_dimensions()`**: 获取所有向量列及其维度
+- **`get_vector_column_dimension()`**: 获取特定向量列的维度
 - **`search_vector()`**: 执行向量检索
 
 **全文检索：**

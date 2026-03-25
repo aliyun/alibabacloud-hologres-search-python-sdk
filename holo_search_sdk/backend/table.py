@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union, c
 from psycopg import sql as psql
 from typing_extensions import LiteralString, Self
 
-from ..exceptions import SqlError
+from ..exceptions import QueryError, SqlError
 from ..types import (
     BaseQuantizationType,
     DistanceType,
@@ -86,13 +86,11 @@ class HoloTable:
         Returns:
             List[str]: List of column names.
         """
-        sql = psql.SQL(
-            """
+        sql = psql.SQL("""
             SELECT column_name FROM information_schema.columns 
             WHERE table_catalog = {} and table_schema = {} and table_name = {} 
             ORDER BY ordinal_position ASC ;
-            """
-        ).format(
+            """).format(
             psql.Literal(self._db.get_config().database),
             psql.Literal(self._db.get_config().schema),
             psql.Literal(self._name),
@@ -569,14 +567,12 @@ class HoloTable:
             else:
                 vectors_config += psql.SQL(", ") + single_config
 
-        sql = psql.SQL(
-            """
+        sql = psql.SQL("""
             CALL set_table_property(
                 {},
                 'vectors',
                 '{{{}}}');
-            """
-        ).format(psql.Literal(self._name), vectors_config)
+            """).format(psql.Literal(self._name), vectors_config)
         self._db.execute(sql)
         self._column_distance_methods.clear()
         for column, config in column_configs.items():
@@ -589,14 +585,12 @@ class HoloTable:
         """
         Delete all vector indexes.
         """
-        sql = psql.SQL(
-            """
+        sql = psql.SQL("""
         CALL set_table_property(
             {},
             'vectors',
             '{{}}');
-        """
-        ).format(psql.Literal(self._name))
+        """).format(psql.Literal(self._name))
         self._db.execute(sql)
         self._column_distance_methods.clear()
         return self
@@ -616,6 +610,102 @@ class HoloTable:
                 return json.loads(res[0])
             except:
                 return None
+
+    def _get_table_properties(
+        self, property_keys: Optional[List[str]] = None
+    ) -> Dict[str, Optional[str]]:
+        """
+        Get table properties from hologres.hg_table_properties.
+
+        Args:
+            property_keys (Optional[List[str]]): List of property keys to filter.
+                If None, returns all properties.
+
+        Returns:
+            Dict[str, Optional[str]]: Dictionary mapping property keys to their values.
+        """
+        sql = psql.SQL(
+            "SELECT property_key, property_value FROM hologres.hg_table_properties "
+            "WHERE table_name = {} AND table_namespace = {}"
+        ).format(
+            psql.Literal(self._name),
+            psql.Literal(self._db.get_config().schema),
+        )
+        if property_keys is not None:
+            sql += psql.SQL(" AND property_key IN ({})").format(
+                psql.SQL(", ").join(psql.Literal(key) for key in property_keys)
+            )
+        sql += psql.SQL(";")
+        res = self._db.fetchall(sql)
+        return {row[0]: row[1] for row in res}
+
+    def _get_column_id_name_mapping(self) -> Dict[str, str]:
+        """
+        Get column ID to column name mapping from pg_attribute.
+
+        Returns:
+            Dict[str, str]: Dictionary mapping column ID (as string) to column name.
+        """
+        sql = psql.SQL(
+            "SELECT attnum, attname FROM pg_attribute "
+            "WHERE attrelid = {}::regclass AND attnum > 0 AND NOT attisdropped "
+            "ORDER BY attnum;"
+        ).format(psql.Literal(f"{self._db.get_config().schema}.{self._name}"))
+        res = self._db.fetchall(sql)
+        return {str(row[0]): row[1] for row in res}
+
+    def get_all_vector_column_dimensions(self) -> Dict[str, List[int]]:
+        """
+        Get all vector columns and their dimensions.
+
+        Returns:
+            Dict[str, List[int]]: Dictionary mapping column names to their dimensions.
+                For example: {"feature1": [128], "feature2": [256]}
+        """
+        properties = self._get_table_properties(["column_array_info"])
+        column_array_info_str = properties.get("column_array_info")
+
+        if not column_array_info_str:
+            raise QueryError("Failed to get column array info.")
+
+        try:
+            # column_array_info: {"2":[4],"5":[6],"6":[8]} - column_id -> dimensions
+            column_array_info: Dict[str, List[int]] = json.loads(column_array_info_str)
+        except json.JSONDecodeError:
+            raise QueryError("Failed to parse column array info.")
+
+        # Get column_id -> column_name mapping from pg_attribute
+        id_to_name = self._get_column_id_name_mapping()
+
+        # Map column_id to column_name in the result
+        result: Dict[str, List[int]] = {}
+        for col_id, dimensions in column_array_info.items():
+            col_name = id_to_name.get(col_id)
+            if col_name:
+                result[col_name] = dimensions
+            else:
+                raise QueryError(f"Column ID {col_id} not found.")
+
+        return result
+
+    def get_vector_column_dimension(self, column_name: str) -> List[int]:
+        """
+        Get the dimension of a specific vector column.
+
+        Args:
+            column_name (str): Name of the column.
+
+        Returns:
+            List[int]: Dimensions of the vector column.
+                For example: [128] for a 128-dimensional vector.
+        """
+        all_dimensions = self.get_all_vector_column_dimensions()
+        res = all_dimensions.get(column_name)
+        if res is None:
+            raise QueryError(
+                f"Column {column_name} is not a vector column or its dimension is not set."
+            )
+        return res
 
     def _get_column_distance_method(self, column: str) -> Optional[DistanceType]:
         index_info = self.get_vector_index_info()
